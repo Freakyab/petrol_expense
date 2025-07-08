@@ -1,101 +1,184 @@
-import Image from "next/image";
+// File: pages/index.tsx
+"use client";
+import React, { useState, useEffect } from "react";
+import { Calendar } from "../components/Calendar";
+import { ExpenseForm } from "../components/ExpenseForm";
+import { Statistics } from "../components/Statistics";
+import { TransactionList } from "../components/TransactionList";
+import { DailyRecord } from "../types";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [records, setRecords] = useState<DailyRecord[]>([]);
+  const [allRecords, setAllRecords] = useState<DailyRecord[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [showForm, setShowForm] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"calendar" | "transactions">(
+    "calendar"
+  );
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const fetchRecords = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `/api/records?month=${currentMonth}&year=${currentYear}`
+      );
+      const data = await response.json();
+      setRecords(data);
+    } catch (error) {
+      console.error("Error fetching records:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAllRecords = async () => {
+    try {
+      const response = await fetch("/api/records");
+      const data = await response.json();
+      setAllRecords(data);
+    } catch (error) {
+      console.error("Error fetching all records:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecords();
+    fetchAllRecords();
+  }, [currentMonth, currentYear]);
+
+  const handleDateClick = (date: string) => {
+    setSelectedDate(date);
+    setShowForm(true);
+  };
+
+  const handleEditRecord = (record: DailyRecord) => {
+    setSelectedDate(record.date);
+    setShowForm(true);
+  };
+
+  const handleDeleteRecord = async (recordId: string) => {
+    if (window.confirm("Are you sure you want to delete this record?")) {
+      try {
+        const response = await fetch(`/api/records?id=${recordId}`, {
+          method: "DELETE",
+        });
+
+        if (response.ok) {
+          await fetchRecords();
+          await fetchAllRecords();
+        }
+      } catch (error) {
+        console.error("Error deleting record:", error);
+      }
+    }
+  };
+
+  const handleSaveRecord = async (record: DailyRecord) => {
+    try {
+      const existingRecord = records.find((r) => r.date === record.date);
+      const method = existingRecord ? "PUT" : "POST";
+      const url = "/api/records";
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(record),
+      });
+
+      if (response.ok) {
+        await fetchRecords();
+        await fetchAllRecords();
+        setShowForm(false);
+      }
+    } catch (error) {
+      console.error("Error saving record:", error);
+    }
+  };
+
+  const handleCancel = () => {
+    setShowForm(false);
+    setSelectedDate("");
+  };
+
+  const handleMonthChange = (month: number, year: number) => {
+    setCurrentMonth(month);
+    setCurrentYear(year);
+  };
+
+  const selectedRecord = records.find((r) => r.date === selectedDate);
+
+  return (
+    <div className="min-h-screen bg-gray-50 text-black">
+      <div className="max-w-md mx-auto p-4">
+        <header className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">
+            Petrol Expense Manager
+          </h1>
+          <p className="text-gray-600">Track your car usage and expenses</p>
+        </header>
+
+        {/* Tab Navigation */}
+        <div className="flex mb-4 bg-white rounded-lg shadow-sm">
+          <button
+            onClick={() => setActiveTab("calendar")}
+            className={`flex-1 py-3 px-4 rounded-lg transition-colors ${
+              activeTab === "calendar"
+                ? "bg-blue-500 text-white"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}>
+            📅 Calendar
+          </button>
+          <button
+            onClick={() => setActiveTab("transactions")}
+            className={`flex-1 py-3 px-4 rounded-lg transition-colors ${
+              activeTab === "transactions"
+                ? "bg-blue-500 text-white"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}>
+            📋 Transactions
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+
+        {loading && (
+          <div className="text-center py-4">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          </div>
+        )}
+
+        <Statistics records={records} />
+
+        {activeTab === "calendar" && (
+          <Calendar
+            records={records}
+            onDateClick={handleDateClick}
+            currentMonth={currentMonth}
+            currentYear={currentYear}
+            onMonthChange={handleMonthChange}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+        )}
+
+        {activeTab === "transactions" && (
+          <TransactionList
+            records={allRecords}
+            onEditRecord={handleEditRecord}
+            onDeleteRecord={handleDeleteRecord}
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
+        )}
+
+        {showForm && (
+          <ExpenseForm
+            selectedDate={selectedDate}
+            existingRecord={selectedRecord}
+            onSave={handleSaveRecord}
+            onCancel={handleCancel}
           />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        )}
+      </div>
     </div>
   );
 }
