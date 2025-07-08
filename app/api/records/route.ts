@@ -59,8 +59,11 @@ export async function PUT(req: NextRequest) {
         }
 
         const { _id, ...updateData } = body;
+
         const result = await collection.updateOne(
-            { _id: new ObjectId(_id) as any },
+
+            // @ts-expect-error: _id type may not match exactly
+            { _id: new ObjectId(_id) as ObjectId }, // @typescript-eslint/no-explicit-any
             { $set: { ...updateData, updatedAt: new Date() } }
         );
 
@@ -85,8 +88,8 @@ export async function DELETE(req: NextRequest) {
         if (!id) {
             return NextResponse.json({ error: 'Missing id' }, { status: 400 });
         }
-
-        const result = await collection.deleteOne({ _id: new ObjectId(id) as any });
+        // @ts-expect-error: id type may not match exactly
+        const result = await collection.deleteOne({ _id: new ObjectId(id) as ObjectId }); // @typescript-eslint/no-explicit-any
 
         if (result.deletedCount === 0) {
             return NextResponse.json({ error: 'Record not found' }, { status: 404 });

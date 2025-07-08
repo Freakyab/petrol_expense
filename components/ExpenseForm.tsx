@@ -34,7 +34,9 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
     onSave(formData as DailyRecord);
   };
 
-  const handleInputChange = (field: keyof DailyRecord, value: any) => {
+  const handleInputChange = (field: keyof DailyRecord, value: 
+string | number | boolean | undefined
+  ) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
