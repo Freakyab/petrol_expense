@@ -179,7 +179,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                     <div>
                       <span className="text-gray-600">Expense:</span>
                       <span className="font-medium ml-1 text-red-600">
-                        ₹{record.petrolExpense}
+                        ₹{record.petrolExpense}/litre
                       </span>
                     </div>
                   )}
