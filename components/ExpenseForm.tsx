@@ -19,9 +19,10 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
     isCarUsed: false,
     distanceTravel: undefined,
     avgKmpl: undefined,
-    petrolExpense: undefined,
+    petrolExpense: 104.04, // Default value for petrol expense
     notes: ''
   });
+
 
   useEffect(() => {
     if (existingRecord) {
